@@ -55,7 +55,7 @@ select option{background:#12121a;color:#e0e0e8}
 // 🔴 REEMPLAZA ESTAS DOS LÍNEAS CON TUS CREDENCIALES REALES 🔴
 // ═══════════════════════════════════════════════════════════════
 const SB_URL = "https://qyskzxtvyzsmdkheztby.supabase.co";  // Ej: "https://xxxxxxxxxxxx.supabase.co"
-const SB_KEY = "sb_publishable_8w6MFnqBgtlFTLhlCexcRA_ky99Rpqs";  // Tu anon/public key
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5c2t6eHR2eXpzbWRraGV6dGJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NjIzNDQsImV4cCI6MjA5MTIzODM0NH0.HplqAR0PTIMTyzLJ4F1vDcm8_i4BMH_4gWplMbbC-ok";  // Tu anon/public key
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIGURACIÓN VISUAL
@@ -432,19 +432,35 @@ function viewDashboard(){
   }
 
   const pc=el("div",{className:"card"});
-  pc.appendChild(el("div",{className:"syne",style:{fontWeight:"700",fontSize:"14px",marginBottom:"10px"}},["👥 Ingresos por persona"]));
+  pc.appendChild(el("div",{className:"syne",style:{fontWeight:"700",fontSize:"14px",marginBottom:"12px"}},["👥 Resumen por persona"]));
   S.persons.forEach((name,i)=>{
-    const total=mtx.filter(t=>t.type==="income"&&t.person_id===String(i)).reduce((s,t)=>s+t.amount,0);
-    const row2=el("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:i<S.persons.length-1?"10px":"0"}});
-    const av=el("div",{style:{width:"32px",height:"32px",borderRadius:"50%",background:i===0?C.indigo+"33":C.green+"33",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",fontWeight:"700",color:i===0?C.indigo:C.green}});
+    const pIncome=mtx.filter(t=>t.type==="income"&&t.person_id===String(i)).reduce((s,t)=>s+t.amount,0);
+    const pExpense=mtx.filter(t=>t.type==="expense"&&t.person_id===String(i)).reduce((s,t)=>s+t.amount,0);
+    const pSavings=mtx.filter(t=>t.type==="savings"&&t.person_id===String(i)).reduce((s,t)=>s+t.amount,0);
+    const pBalance=pIncome-pExpense-pSavings;
+    const accentColor=i===0?C.indigo:C.green;
+    const wrap=el("div",{style:{marginBottom:i<S.persons.length-1?"14px":"0",background:C.card2,borderRadius:"12px",padding:"12px",border:`1px solid ${accentColor}22`}});
+    // Fila nombre + avatar
+    const nameRow=el("div",{style:{display:"flex",alignItems:"center",gap:"8px",marginBottom:"10px"}});
+    const av=el("div",{style:{width:"32px",height:"32px",borderRadius:"50%",background:accentColor+"33",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",fontWeight:"700",color:accentColor}});
     av.textContent=name.slice(0,1);
-    const left=el("div",{style:{display:"flex",alignItems:"center",gap:"8px"}});
-    left.appendChild(av);left.appendChild(el("span",{style:{fontSize:"14px"}},[name]));
-    const right=el("div",{style:{textAlign:"right"}});
-    const tv=el("div",{style:{color:C.green,fontWeight:"700",fontSize:"16px"}});tv.textContent=fmt(total);
-    right.appendChild(tv);
-    if(income>0){const pv=el("div",{style:{fontSize:"10px",color:C.muted}});pv.textContent=`${((total/income)*100).toFixed(0)}% del total`;right.appendChild(pv);}
-    row2.appendChild(left);row2.appendChild(right);pc.appendChild(row2);
+    const nameLabel=el("span",{style:{fontSize:"14px",fontWeight:"600"}});nameLabel.textContent=name;
+    nameRow.appendChild(av);nameRow.appendChild(nameLabel);
+    // Balance personal destacado
+    const balLabel=el("div",{style:{fontSize:"10px",color:C.muted,marginLeft:"auto",textTransform:"uppercase",letterSpacing:"1px"}});balLabel.textContent="balance";
+    const balValue=el("div",{style:{color:pBalance>=0?C.green:C.red,fontWeight:"800",fontSize:"18px",marginLeft:"auto",textAlign:"right"}});balValue.textContent=fmt(pBalance);
+    nameRow.appendChild(el("div",{style:{marginLeft:"auto",textAlign:"right"}},[balLabel,balValue]));
+    wrap.appendChild(nameRow);
+    // Fila stats: ingresos / gastos / ahorros
+    const statsRow=el("div",{style:{display:"flex",gap:"6px"}});
+    [["↑ Ingresos",pIncome,C.green],["↓ Gastos",pExpense,C.red],["⬡ Ahorros",pSavings,C.amber]].forEach(([l,v,c])=>{
+      const col=el("div",{style:{flex:"1",background:C.card,borderRadius:"8px",padding:"7px 6px",textAlign:"center"}});
+      col.appendChild(el("div",{style:{fontSize:"9px",color:C.muted,marginBottom:"2px"}},[l]));
+      const vd=el("div",{style:{color:c,fontWeight:"700",fontSize:"12px"}});vd.textContent=fmt(v);
+      col.appendChild(vd);statsRow.appendChild(col);
+    });
+    wrap.appendChild(statsRow);
+    pc.appendChild(wrap);
   });
   div.appendChild(pc);
 
