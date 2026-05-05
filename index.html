@@ -750,12 +750,10 @@ function buildModal(){
     const di=el("input",{type:"date",className:"inp",style:{marginBottom:"12px"}});di.value=f.date||hoy();
     di.addEventListener("change",e=>S.form={...S.form,date:e.target.value});box.appendChild(di);
     
-    if(f.type==="income"){
-      box.appendChild(el("label",{className:"lbl"},["Persona"]));
-      const ps=el("select",{className:"inp",style:{marginBottom:"12px"}});
-      S.persons.forEach((p,i)=>{const o=el("option",{value:String(i)},[p]);if(f.person_id===String(i))o.selected=true;ps.appendChild(o);});
-      ps.addEventListener("change",e=>S.form={...S.form,person_id:e.target.value});box.appendChild(ps);
-    }
+    box.appendChild(el("label",{className:"lbl"},["Persona"]));
+    const ps=el("select",{className:"inp",style:{marginBottom:"12px"}});
+    S.persons.forEach((p,i)=>{const o=el("option",{value:String(i)},[p]);if(f.person_id===String(i))o.selected=true;ps.appendChild(o);});
+    ps.addEventListener("change",e=>S.form={...S.form,person_id:e.target.value});box.appendChild(ps);
     
     const cats=f.type==="income"?CATS_INGRESO:f.type==="savings"?CATS_AHORRO:CATS_GASTO;
     box.appendChild(el("label",{className:"lbl"},["Categoría"]));
