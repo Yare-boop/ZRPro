@@ -147,7 +147,7 @@ const S={
   view:"dashboard",month:new Date().getMonth(),year:new Date().getFullYear(),trendYear:new Date().getFullYear(),
   persons:["Pareja Z","Pareja R"],txList:[],budgets:[],debts:[],goals:[],
   syncing:false,lastSync:null,modal:null,form:{type:"expense",date:hoy(),person_id:"0",amount:"",cat_id:"",sub_cat:"",note:""},
-  savAmt:{},settings:false,toast:null,toastTimer:null
+  savAmt:{},editGoalId:null,editGoalAmt:{},settings:false,toast:null,toastTimer:null
 };
 let render=()=>{};
 
@@ -358,6 +358,13 @@ async function deleteDebt(id){try{await sbDel("debts",`?id=eq.${id}`);await fetc
 async function addToGoal(id,amt){
   const g=S.goals.find(g=>g.id===id);if(!g)return;
   try{await sbPatch("goals",`?id=eq.${id}`,{current:g.current+amt});await fetchAll();showToast("💰 Depósito guardado");}catch(e){}
+}
+async function deleteGoal(id){
+  try{await sbDel("goals",`?id=eq.${id}`);await fetchAll();showToast("🗑️ Meta eliminada","err");}catch(e){showToast("❌ Error","err");}
+}
+async function setGoalAmount(id,amt){
+  const val=parseFloat(amt);if(isNaN(val)||val<0){showToast("❌ Monto inválido","err");return;}
+  try{await sbPatch("goals",`?id=eq.${id}`,{current:val});await fetchAll();showToast("✅ Monto actualizado");}catch(e){showToast("❌ Error","err");}
 }
 async function setBudget(catId,amount){
   const val=parseFloat(amount)||0;
@@ -711,16 +718,49 @@ function viewSavings(){
     bar.appendChild(fill);gc.appendChild(bar);
     const gst=el("div",{style:{fontSize:"11px",color:pct<100?C.muted:g.color,fontWeight:pct<100?"400":"700",marginBottom:"10px"}});
     gst.textContent=pct<100?`Faltan ${fmt(g.target-g.current)} 🎯`:"🎉 ¡Meta alcanzada!";gc.appendChild(gst);
-    const gr=el("div",{style:{display:"flex",gap:"8px"}});
+    // Fila depósito
+    const gr=el("div",{style:{display:"flex",gap:"8px",marginBottom:"8px"}});
     const gi=el("input",{type:"number",placeholder:"Depositar...",className:"inp",style:{fontSize:"13px",padding:"8px 10px",flex:"1"}});
     gi.value=S.savAmt[g.id]||"";
-    gi.addEventListener("input",function(e){S.savAmt={...S.savAmt,[g.id]:e.target.value};render();});
+    gi.addEventListener("input",function(e){S.savAmt={...S.savAmt,[g.id]:e.target.value};});
     const gb=el("button",{className:"btn-amb",style:{padding:"8px 12px",whiteSpace:"nowrap"},onClick:function(){
       const a=parseFloat(S.savAmt[g.id]);
       if(a>0){addToGoal(g.id,a);S.savAmt={...S.savAmt,[g.id]:""};render();}
     }});
     gb.textContent="+ Dep.";
-    gr.appendChild(gi);gr.appendChild(gb);gc.appendChild(gr);div.appendChild(gc);
+    gr.appendChild(gi);gr.appendChild(gb);gc.appendChild(gr);
+    // Fila editar/eliminar
+    const actRow=el("div",{style:{display:"flex",gap:"8px",alignItems:"center"}});
+    const editBtn=el("button",{style:{flex:"1",background:C.card2,border:`1px solid ${C.border}`,color:C.muted,borderRadius:"10px",padding:"7px",fontSize:"12px",cursor:"pointer"},onClick:function(){
+      S.editGoalId=S.editGoalId===g.id?null:g.id;
+      S.editGoalAmt={...S.editGoalAmt,[g.id]:String(g.current)};
+      render();
+    }});
+    editBtn.textContent="✏️ Editar monto";
+    const delBtn=el("button",{style:{background:"none",border:`1px solid ${C.red}33`,color:C.red,borderRadius:"10px",padding:"7px 10px",fontSize:"12px",cursor:"pointer"},onClick:function(){
+      if(confirm(`¿Eliminar la meta "${g.name}"?`))deleteGoal(g.id);
+    }});
+    delBtn.textContent="🗑";
+    actRow.appendChild(editBtn);actRow.appendChild(delBtn);gc.appendChild(actRow);
+    // Panel edición inline
+    if(S.editGoalId===g.id){
+      const epanel=el("div",{style:{marginTop:"10px",background:C.card2,borderRadius:"10px",padding:"10px",border:`1px solid ${g.color}44`}});
+      epanel.appendChild(el("div",{style:{fontSize:"11px",color:C.muted,marginBottom:"6px"}},["✏️ Sobreescribir monto ahorrado:"]));
+      const erow=el("div",{style:{display:"flex",gap:"8px"}});
+      const ei=el("input",{type:"number",className:"inp",style:{fontSize:"14px",fontWeight:"700",flex:"1"}});
+      ei.value=S.editGoalAmt[g.id]||"";
+      ei.addEventListener("input",function(e){S.editGoalAmt={...S.editGoalAmt,[g.id]:e.target.value};});
+      const esave=el("button",{className:"btn-grn",style:{padding:"8px 12px",whiteSpace:"nowrap"},onClick:function(){
+        setGoalAmount(g.id,S.editGoalAmt[g.id]);S.editGoalId=null;
+      }});
+      esave.textContent="Guardar";
+      const ecancel=el("button",{style:{background:"none",border:`1px solid ${C.border}`,color:C.muted,borderRadius:"10px",padding:"8px 10px",fontSize:"12px",cursor:"pointer"},onClick:function(){
+        S.editGoalId=null;render();
+      }});
+      ecancel.textContent="Cancelar";
+      erow.appendChild(ei);erow.appendChild(esave);erow.appendChild(ecancel);epanel.appendChild(erow);gc.appendChild(epanel);
+    }
+    div.appendChild(gc);
   });
   return div;
 }
